@@ -1,0 +1,73 @@
+version: '2'
+
+volumes:
+  nextcloud:
+  db:
+
+services:
+  db:
+    image: mysql
+    container_name: nextcloud-database
+    command: --transaction-isolation=READ-COMMITTED --binlog-format=ROW
+    restart: unless-stopped
+    volumes:
+      - db:/var/lib/mysql
+    environment:
+      - MYSQL_ROOT_PASSWORD=
+      - MYSQL_PASSWORD=
+      - MYSQL_DATABASE=nextcloud
+      - MYSQL_USER=nextcloud
+
+  app:
+    image: nextcloud:fpm
+    container_name: nextcloud
+    links:
+      - db
+    volumes:
+      - nextcloud:/var/www/html
+      - /mnt/nextcloud/data:/var/www/html/data
+    restart: unless-stopped
+
+  web:
+    image: nginx
+    container_name: nginx
+    ports:
+      - 80:80
+      - 443:443
+    links:
+      - app
+    volumes:
+      - ./nginx-ssl.conf:/etc/nginx/nginx.conf:ro
+      - ./Cert/selfsigned.crt:/etc/ssl/nginx/selfsigned.crt
+      - ./Cert/selfsigned.key:/etc/ssl/nginx/selfsigned.key
+      - /etc/letsencrypt:/etc/letsencrypt
+      - /var/lib/letsencrypt:/var/lib/letsencrypt
+    volumes_from:
+      - app
+    restart: unless-stopped
+
+  create-certbot:
+    image: certbot/certbot
+    container_name: create-cert
+    command: certonly --webroot --webroot-path=/var/www/html --email quannnl92@gmail.com --agree-tos --no-eff-email -d chota5511.tk -d www.chota5511.tk -d *.chota5511.tk
+    links:
+      - web
+    volumes:
+      - /etc/letsencrypt:/etc/letsencrypt
+      - /var/lib/letsencrypt:/var/lib/letsencrypt
+      - /var/log/letsencrypt:/var/log/letsencrypt
+    volumes_from:
+      - web
+      - app
+
+#  renew-certbot:
+#    image: certbot/certbot
+#    container_name: renew-cert
+#    command: renew --webroot --webroot-path=/var/www/html --email quannnl92@gmail.com --agree-tos --no-eff-email -d chota5511.tk -d www.chota5511.tk
+#    links:
+#      - web
+#    volumes:
+#      - /etc/letsencrypt:/etc/letsencrypt
+#      - /var/lib/letsencrypt:/var/lib/letsencrypt
+#      - nextcloud:/var/www/html
+#    restart: unless-stopped
