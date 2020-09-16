@@ -46,6 +46,16 @@ services:
       - app
     restart: unless-stopped
 
+  collabora:
+    image: collabora/code
+    container_name: collabora
+    volumes_from:
+      - ./Cert/selfsigned.crt:/etc/ssl/nginx/selfsigned.crt
+      - ./Cert/selfsigned.key:/etc/ssl/nginx/selfsigned.key
+      - /etc/letsencrypt:/etc/letsencrypt
+      - /var/lib/letsencrypt:/var/lib/letsencrypt
+    restart: unless-stopped
+
   create-certbot:
     image: certbot/certbot
     container_name: create-cert
